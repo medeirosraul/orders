@@ -1,6 +1,6 @@
 ﻿namespace Orders.Core.Domain.Orders.Models
 {
-    public class OrderItemCreateResponse
+    public class OrderItemResponse
     {
         public required string Id { get; set; }
         public required string OrderCode { get; set; }

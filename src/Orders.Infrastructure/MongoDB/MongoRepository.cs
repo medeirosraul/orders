@@ -2,7 +2,6 @@
 using MongoDB.Driver.Linq;
 using Orders.Core.Domain.Common;
 using Orders.Core.Interfaces;
-using System.Linq.Expressions;
 
 namespace Orders.Infrastructure.MongoDB
 {
@@ -112,7 +111,33 @@ namespace Orders.Infrastructure.MongoDB
                 .ToListAsync();
         }
 
-        public async Task<TEntity?> GetFirstOrDefaultAsync(Expression<Func<TEntity, bool>> predicate)
+        public async Task<PagedResult<TEntity>> GetPagedAsync(int page, int pageSize, IQueryable<TEntity>? query = null)
+        {
+            query ??= AsQueryable();
+
+            var count = await query.CountAsync();
+
+            page = page == 0 ? 1 : page;
+            pageSize = pageSize == 0 || pageSize == int.MaxValue ? count : pageSize;
+
+            var result = new PagedResult<TEntity>()
+            {
+                TotalCount = count,
+                Page = page,
+                PageSize = pageSize
+            };
+
+            if (count == 0) return result;
+
+            if (pageSize != count)
+                query = query.Skip((page - 1) * pageSize).Take(pageSize);
+
+            result.Data.AddRange(await query.ToListAsync());
+
+            return result;
+        }
+
+        public async Task<TEntity?> GetFirstOrDefaultAsync(System.Linq.Expressions.Expression<Func<TEntity, bool>> predicate)
         {
             return await AsQueryable()
                 .FirstOrDefaultAsync(predicate);

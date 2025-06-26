@@ -27,6 +27,7 @@
 
         public Entity()
         {
+            Id = Guid.NewGuid().ToString();
             var now = DateTime.UtcNow;
             CreatedAt = now;
             ModifiedAt = now;

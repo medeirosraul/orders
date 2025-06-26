@@ -16,6 +16,8 @@ namespace Orders.Core.Interfaces
 
         Task<IEnumerable<T>> GetAllAsync();
 
+        Task<PagedResult<T>> GetPagedAsync(int page, int pageSize, IQueryable<T>? query = null);
+
         IQueryable<T> AsQueryable();
 
         Task<T?> GetFirstOrDefaultAsync(Expression<Func<T, bool>> predicate);

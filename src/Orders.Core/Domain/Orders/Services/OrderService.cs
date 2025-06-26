@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Orders.Core.Domain.Common;
 using Orders.Core.Domain.Orders.Entities;
 using Orders.Core.Domain.Orders.Models;
 using Orders.Core.Interfaces;
@@ -7,7 +8,11 @@ namespace Orders.Core.Domain.Orders.Services
 {
     public interface IOrderService
     {
-        Task<OrderCreateResponse> CreateOrder(OrderCreateModel model);
+        Task<OrderResponse> CreateOrder(OrderCreateModel model);
+
+        Task<PagedResult<OrderResponse>> ListOrders(OrderFilterModel filters);
+
+        Task<OrderResponse> GetOrderDetails(string code);
     }
 
     public class OrderService : IOrderService
@@ -25,7 +30,7 @@ namespace Orders.Core.Domain.Orders.Services
             _orderItemRepository = orderItemRepository;
         }
 
-        public async Task<OrderCreateResponse> CreateOrder(OrderCreateModel model)
+        public async Task<OrderResponse> CreateOrder(OrderCreateModel model)
         {
             var exists = await _orderRepository.GetFirstOrDefaultAsync(x => x.Code == model.Code) is not null;
 
@@ -74,13 +79,13 @@ namespace Orders.Core.Domain.Orders.Services
                 throw;
             }
 
-            return new OrderCreateResponse
+            return new OrderResponse
             {
                 Id = order.Id,
                 Code = order.Code,
                 Customer = order.Customer,
                 TotalValue = order.TotalValue,
-                Items = items.Select(x => new OrderItemCreateResponse
+                Items = items.ConvertAll(x => new OrderItemResponse
                 {
                     Id = x.Id,
                     OrderCode = x.OrderCode,
@@ -88,7 +93,67 @@ namespace Orders.Core.Domain.Orders.Services
                     Quantity = x.Quantity,
                     UnitPrice = x.UnitPrice,
                     TotalValue = x.TotalValue
-                }).ToList()
+                })
+            };
+        }
+
+        public async Task<PagedResult<OrderResponse>> ListOrders(OrderFilterModel filters)
+        {
+            var query = _orderRepository.AsQueryable();
+
+            // Filtros do pedido
+            if (!string.IsNullOrEmpty(filters.Customer))
+                query = query.Where(x => x.Customer == filters.Customer);
+
+            // Para otimização, apenas os pedidos são retornados na lista.
+            // Os itens devem ser retornados ao consultar os Detalhes do Pedido.
+            var orders = await _orderRepository.GetPagedAsync(filters.Page, filters.PageSize, query);
+
+            // Mapeia o pedido para o modelo de resposta
+            var result = new PagedResult<OrderResponse>
+            {
+                Page = orders.Page,
+                PageSize = orders.PageSize,
+                TotalCount = orders.TotalCount,
+                Data = orders.Data.ConvertAll(x => new OrderResponse
+                {
+                    Id = x.Id,
+                    Code = x.Code,
+                    Customer = x.Customer,
+                    TotalValue = x.TotalValue
+                })
+            };
+
+            return result;
+        }
+
+        public async Task<OrderResponse> GetOrderDetails(string code)
+        {
+            var order = await _orderRepository.GetFirstOrDefaultAsync(x => x.Code == code);
+
+            if (order is null)
+                throw new Exception($"Order with code {code} not found.");
+
+            var itemsQuery = _orderItemRepository.AsQueryable()
+                .Where(x => x.OrderCode == code);
+
+            var items = await _orderItemRepository.GetPagedAsync(1, int.MaxValue, itemsQuery);
+
+            return new OrderResponse
+            {
+                Id = order.Id,
+                Code = order.Code,
+                Customer = order.Customer,
+                TotalValue = order.TotalValue,
+                Items = items.Data.ConvertAll(x => new OrderItemResponse
+                {
+                    Id = x.Id,
+                    OrderCode = x.OrderCode,
+                    Product = x.Product,
+                    Quantity = x.Quantity,
+                    UnitPrice = x.UnitPrice,
+                    TotalValue = x.TotalValue
+                })
             };
         }
     }
