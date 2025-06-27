@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Orders.Attributes;
 using Orders.Core.Domain.Orders.Models;
 using Orders.Core.Domain.Orders.Services;
 
@@ -18,6 +19,7 @@ namespace Orders.Controllers
         }
 
         [HttpPost]
+        [RequireAuthorizedKey]
         public async Task<IActionResult> Create(OrderCreateModel model)
         {
             var result = await _orderService.CreateOrder(model);
@@ -25,6 +27,7 @@ namespace Orders.Controllers
         }
 
         [HttpGet]
+        [RequireAuthorizedKey]
         public async Task<IActionResult> Get(OrderFilterModel filters)
         {
             var result = await _orderService.ListOrders(filters);

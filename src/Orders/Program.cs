@@ -1,5 +1,7 @@
 using Orders.Core;
 using Orders.Infrastructure.MongoDB;
+using Orders.Infrastructure.RabbitMQ;
+using Orders.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +13,7 @@ var connectionString = builder.Configuration["Database:ConnectionString"];
 var databaseName = builder.Configuration["Database:Name"];
 
 builder.Services.AddMongoDB(connectionString, databaseName);
+builder.Services.AddRabbitMQConsumers();
 
 #endregion
 
@@ -30,6 +33,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+app.UseMiddleware<AuthorizationMiddleware>();
 
 app.MapControllers();
 
