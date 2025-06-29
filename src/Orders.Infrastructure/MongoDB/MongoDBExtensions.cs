@@ -8,6 +8,7 @@ namespace Orders.Infrastructure.MongoDB
     {
         public static void AddMongoDB(this IServiceCollection services, string connectionString, string databaseName)
         {
+            // Configuração dos serviços para utilização do repositório MongoDB.
             services.AddSingleton<IMongoClient>(new MongoClient(connectionString));
             services.AddSingleton<IMongoDatabase>(sp =>
             {
@@ -15,6 +16,7 @@ namespace Orders.Infrastructure.MongoDB
                 return client.GetDatabase(databaseName);
             });
 
+            // Implementação do UnitOfWork e do repositório genérico.
             services.AddScoped<IUnitOfWork, MongoUnitOfWork>(sp =>
             {
                 var client = sp.GetRequiredService<IMongoClient>();

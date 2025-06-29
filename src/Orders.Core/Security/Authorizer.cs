@@ -18,6 +18,12 @@ namespace Orders.Core.Security
 
         public Task<bool> Authorize(string key)
         {
+            /*
+             * Este serviço de autorização é responsável por validar uma chave de autorização.
+             * Ele simula a implementação de uma interface de autorização que poderia ser usada
+             * em um cenário real para verificar se uma chave de API ou token é válido.
+             */
+
             _logger.LogInformation("Authorizing key: {Key}", key);
 
             if (string.IsNullOrWhiteSpace(key))

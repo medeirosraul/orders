@@ -32,11 +32,14 @@ namespace Orders.Core.Domain.Orders.Services
 
         public async Task<OrderResponse> CreateOrder(OrderCreateModel model)
         {
+            // Não é possível criar um pedido com código já existente.
             var exists = await _orderRepository.GetFirstOrDefaultAsync(x => x.Code == model.Code) is not null;
 
             if (exists)
                 throw new Exception($"Order with code {model.Code} already exists.");
 
+            // A criação do pedido é feita com base no modelo de criação.
+            // O modelo de criação passado na assinatura do método é uma forma de padronizar os dados recebidos.
             var order = new Order
             {
                 Code = model.Code,
@@ -59,6 +62,7 @@ namespace Orders.Core.Domain.Orders.Services
 
             order.TotalValue = items.Sum(x => x.TotalValue);
 
+            // Inicia uma transação para garantir que o pedido e os itens sejam inseridos de forma atômica.
             await _unitOfWork.BeginTransactionAsync();
 
             try
@@ -79,6 +83,7 @@ namespace Orders.Core.Domain.Orders.Services
                 throw;
             }
 
+            // Mapeia o pedido e os itens para padronização de resposta.
             return new OrderResponse
             {
                 Id = order.Id,

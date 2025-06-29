@@ -21,6 +21,10 @@ namespace Orders.Infrastructure.MongoDB
 
         public Task InsertAsync(TEntity entity)
         {
+            // Sessões são usadas para garantir transações atômicas no MongoDB.
+            // Este trecho (e nos demais métodos de operação) verifica se há uma sessão ativa na unidade de trabalho.
+            // Isso permite que as operações sejam executadas na mesma sessão caso ela exista,
+            // garantindo que possa ser feita uma operação de rollback em caso de erro.
             if (_unityOfWork is MongoUnitOfWork mongoUnityOfWork && mongoUnityOfWork.GetSession() is not null)
             {
                 var session = mongoUnityOfWork.GetSession();
@@ -59,12 +63,14 @@ namespace Orders.Infrastructure.MongoDB
                 result = await _collection.ReplaceOneAsync(filter, entity, new ReplaceOptions { IsUpsert = false });
             }
 
-            // Concurrency check
+            // Este trecho verifica se a operação de atualização foi reconhecida pelo MongoDB.
             if (!result.IsAcknowledged)
             {
                 throw new Exception("Error on updating document. Operation is not acknowledged.");
             }
 
+            // Se o número de documentos correspondentes for zero, significa que não houve atualização.
+            // Isso pode ocorrer se a versão do documento foi alterada por outra operação concorrente.
             if (result.MatchedCount == 0)
             {
                 var exists = _collection.AsQueryable()
@@ -74,6 +80,8 @@ namespace Orders.Infrastructure.MongoDB
                 {
                     var entityName = typeof(TEntity).Name;
 
+                    // TODO: O ideal é lançar uma exceção específica para indicar que houve um conflito de concorrência.
+                    // Isso permite que o chamador saiba que a atualização falhou devido a uma condição de concorrência.
                     throw new Exception($"Concurrency error on trying to update Entity {entityName}, with ID {entity.Id}.");
                 }
             }

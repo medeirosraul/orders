@@ -1,5 +1,9 @@
 ﻿namespace Orders.Core.Domain.Common
 {
+    /// <summary>
+    /// Lista paginada genérica.
+    /// </summary>
+    /// <typeparam name="T"> Tipo da lista. </typeparam>
     public class PagedResult<T>
     {
         public int Page { get; set; }
